@@ -119,3 +119,26 @@ export async function checkWebhookUrl(input: string, resolve: Resolver = resolve
   if (!addresses.length || addresses.some(isBlockedAddress)) return refused;
   return { url: parsed.url, address: addresses[0] };
 }
+
+/** Chat webhook URLs: a Discord or Slack webhook is a chat endpoint, not an own server. Signed webhooks go to the
+ * creator's own server, so addEndpoint refuses these when a URL is saved; sends never show this reason. */
+const DISCORD_HOSTS = new Set([
+  "discord.com",
+  "discordapp.com",
+  "canary.discord.com",
+  "ptb.discord.com",
+  "canary.discordapp.com",
+  "ptb.discordapp.com",
+]);
+
+export function chatWebhookRefusal(url: URL): string | null {
+  let host = url.hostname.toLowerCase();
+  if (host.endsWith(".")) host = host.slice(0, -1);
+  if (DISCORD_HOSTS.has(host) && url.pathname.startsWith("/api/webhooks/")) {
+    return "This is a Discord webhook. Signed webhooks go to your own server; use Discord notifications for a Discord channel.";
+  }
+  if (host === "hooks.slack.com" && url.pathname.startsWith("/services/")) {
+    return "This is a Slack webhook. Signed webhooks go to your own server, not to Slack.";
+  }
+  return null;
+}
