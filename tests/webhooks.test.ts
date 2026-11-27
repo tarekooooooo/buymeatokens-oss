@@ -553,3 +553,32 @@ describe("signed webhooks", () => {
     });
   });
 });
+
+describe("chat webhook URLs", () => {
+  beforeAll(async () => {
+    mocks.db = new PGlite();
+    await mocks.db.exec(SCHEMA);
+  });
+
+  beforeEach(async () => {
+    await mocks.db.exec("TRUNCATE users CASCADE; TRUNCATE ops_events; DROP TRIGGER IF EXISTS boom ON webhook_deliveries;");
+    await creator("maker");
+  });
+
+  afterAll(async () => {
+    await mocks.db.close();
+  });
+
+  it("refuses Discord and Slack webhook URLs on save, without saving them", async () => {
+    for (const url of [
+      "https://discord.com/api/webhooks/123/abc",
+      "https://canary.discord.com/api/webhooks/123/abc",
+      "https://hooks.slack.com/services/T123/B123/abc",
+    ]) {
+      expect(await addEndpoint("maker", url, { resolve: PUBLIC })).toEqual({
+        error: expect.stringContaining("your own server"),
+      });
+    }
+    expect(await listEndpoints("maker")).toEqual([]);
+  });
+});
