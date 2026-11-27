@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { assertConsent } from "@/lib/consent";
-import { reportError   from "@/lib/ops";
+import { reportError  from "@/lib/ops";
 import { requireCreator } from "@/lib/session";
 import { addEndpoint, deleteEndpoint, rotateSecret, sendTestEvent } from "@/lib/webhooks";
 
