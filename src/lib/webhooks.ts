@@ -7,7 +7,7 @@ import { decrypt, encrypt, newId, randomToken } from "./crypto";
 import { isUniqueViolation, num, query, str } from "./db";
 import { sendWebhook, type SendDeps } from "./webhook-send";
 import { webhookHeaders } from "./webhook-sign";
-import { checkWebhookUrl, type Resolver } from "./webhook-url";
+import { chatWebhookRefusal, checkWebhookUrl, type Resolver } from "./webhook-url";
 
 export const MAX_ENDPOINTS = 3;
 export const SECRET_PREFIX = "bmtwh_";
@@ -58,6 +58,8 @@ export async function addEndpoint(
 ): Promise<{ id: string; secret: string } | { error: string }> {
   const checked = await checkWebhookUrl(urlInput, deps.resolve);
   if ("error" in checked) return checked;
+  const chat = chatWebhookRefusal(checked.url);
+  if (chat) return { error: chat };
   const id = newId();
   const secret = newSecret();
   const limit = { error: `You can have up to ${MAX_ENDPOINTS} endpoints. Delete one first.` };
