@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { checkWebhookUrl, isBlockedAddress, parseWebhookUrl } from "../src/lib/webhook-url";
+import { chatWebhookRefusal, checkWebhookUrl, isBlockedAddress, parseWebhookUrl } from "../src/lib/webhook-url";
 
 const rejected = [
   "http://example.com/hook",
@@ -119,5 +119,29 @@ describe("resolving a webhook URL", () => {
     const resolve = resolver("93.184.216.34");
     expect(await checkWebhookUrl("http://example.com/", resolve)).toHaveProperty("error");
     expect(resolve).not.toHaveBeenCalled();
+  });
+});
+
+describe("chat webhook URLs", () => {
+  it.each([
+    ["Discord", "https://discord.com/api/webhooks/123/abc"],
+    ["Discord", "https://discordapp.com/api/webhooks/123/abc"],
+    ["Discord", "https://canary.discord.com/api/webhooks/123/abc"],
+    ["Discord", "https://ptb.discordapp.com/api/webhooks/123/abc"],
+    ["Slack", "https://hooks.slack.com/services/T123/B123/abc"],
+  ])("refuses a %s webhook URL and says where it belongs", (name, raw) => {
+    const refusal = chatWebhookRefusal(new URL(raw));
+    expect(refusal ?? "").toContain(name);
+    expect(refusal ?? "").toContain("your own server");
+  });
+
+  it.each([
+    "https://discord.com/channels/123/456",
+    "https://hooks.slack.com/",
+    "https://evil-discord.com/api/webhooks/123/abc",
+    "https://discord.com.evil.example/api/webhooks/123/abc",
+    "https://hooks.example.com/hook",
+  ])("accepts %s", (raw) => {
+    expect(chatWebhookRefusal(new URL(raw))).toBeNull();
   });
 });
